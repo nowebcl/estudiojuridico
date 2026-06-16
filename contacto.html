@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CONTACTO | MARCHESSI - MUÑOZ - DUHART - VERA Y GONZALEZ</title>
+  <!-- Favicon -->
+  <link rel="icon" sizes="192x192" href="https://www.wix.com/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="https://www.wix.com/favicon.ico" type="image/x-icon">
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Header -->
+  <header class="site-header" id="siteHeader">
+    <div class="container">
+      <!-- Elegant Centered Hamburger Button -->
+      <button class="menu-toggle-btn" id="menuToggleBtn" aria-label="Abrir Menú">
+        <div class="hamburger-icon">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </button>
+    </div>
+  </header>
+
+  <!-- Slide-out Drawer Menu -->
+  <div class="menu-drawer-overlay" id="menuOverlay"></div>
+  <div class="menu-drawer" id="menuDrawer">
+    <button class="menu-close-btn" id="menuCloseBtn" aria-label="Cerrar Menú">
+      <span class="close-text">CERRAR</span>
+      <span class="close-icon">&times;</span>
+    </button>
+    
+    <div class="drawer-content">
+      <img src="https://static.wixstatic.com/media/91e9c7_2a2a400700364da784ee889b31d40556~mv2.png" alt="Cia Abogados Logo" class="drawer-logo">
+      <ul class="drawer-nav">
+        <li><a href="index.html" class="drawer-link">Inicio</a></li>
+        <li><a href="estudiojuridico.html" class="drawer-link">Estudio Juridico</a></li>
+        <li><a href="nuestroequipo.html" class="drawer-link">Nuestro Equipo</a></li>
+        <li><a href="contacto.html" class="drawer-link active">Contacto</a></li>
+      </ul>
+      <div class="drawer-footer">
+        <p>mcmcompaniadeabogados@gmail.com</p>
+        <p>&copy; 2025 Cia Abogados</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Banner -->
+  <section class="page-banner" style="background-image: url('https://static.wixstatic.com/media/91e9c7_770dca2a96454d7b8546d4c59c741f77~mv2.jpg'); background-position: center 40%;">
+    <h1 class="page-banner-title">Contacto</h1>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="section">
+    <div class="container">
+      <div class="contact-layout">
+        
+        <!-- Left Column: Contact info & map -->
+        <div class="contact-info-panel reveal">
+          <div class="section-title-wrapper" style="text-align: left; margin-bottom: 30px;">
+            <p class="section-subtitle">Comunícate con Nosotros</p>
+            <h2 class="section-title" style="display: block;">Información</h2>
+          </div>
+          
+          <div class="contact-item">
+            <div class="contact-icon-wrapper">
+              <svg class="contact-icon" viewBox="0 0 24 24">
+                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+              </svg>
+            </div>
+            <div class="contact-details">
+              <h3>Correo Electrónico</h3>
+              <p><a href="mailto:mcmcompaniadeabogados@gmail.com">mcmcompaniadeabogados@gmail.com</a></p>
+            </div>
+          </div>
+          
+          <div class="contact-item">
+            <div class="contact-icon-wrapper">
+              <svg class="contact-icon" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+            </div>
+            <div class="contact-details">
+              <h3>Ubicación Principal</h3>
+              <p>Puerto Montt, Región de Los Lagos, Chile</p>
+            </div>
+          </div>
+
+          <!-- Map Mockup -->
+          <div class="map-container">
+            <div class="map-placeholder" style="background-image: url('https://static.wixstatic.com/media/91e9c7_770dca2a96454d7b8546d4c59c741f77~mv2.jpg');">
+              <div class="map-badge">
+                <strong>Compañía de Abogados</strong><br>
+                Puerto Montt, Chile
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Form -->
+        <div class="contact-form-panel reveal">
+          <h2 class="form-title">Escríbenos</h2>
+          
+          <form id="contactForm" novalidate>
+            <div class="form-row-double">
+              <div class="form-group">
+                <label for="name" class="form-label">Nombre</label>
+                <input type="text" id="name" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label for="lastName" class="form-label">Apellido</label>
+                <input type="text" id="lastName" class="form-input" required>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" id="email" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="message" class="form-label">Mensaje</label>
+              <textarea id="message" class="form-input" required></textarea>
+            </div>
+            
+            <button type="submit" class="btn-gold" style="width: 100%;">Enviar</button>
+            
+            <!-- Message Response -->
+            <div id="formMessage" class="form-message"></div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <img src="https://static.wixstatic.com/media/91e9c7_2a2a400700364da784ee889b31d40556~mv2.png" alt="Cia Abogados Logo" class="logo-img">
+        <div class="footer-info">
+          <p>&copy; 2025 Cia Abogados, Puerto Montt.</p>
+        </div>
+        <div class="footer-copyright">
+          <p>&copy; 2025 Cia Abogados, Puerto Montt.</p>
+          <p class="footer-credits">Sitio web creado por <a href="contacto.html">Gamma Estudio</a></p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script -->
+  <script src="main.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
