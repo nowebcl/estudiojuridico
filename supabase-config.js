@@ -1,6 +1,6 @@
 // Supabase Configuration
 const supabaseUrl = 'https://rfirnsgpbajpgdrhfrqo.supabase.co';
-const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; // Reemplazar con tu Anon Key de Supabase
+const supabaseKey = 'sb_publishable_Uib4gcKLF30_QJtUvsIhjw_dLPJeT8B'; // Reemplazar con tu Anon Key de Supabase
 
 // Crear cliente global de Supabase
 // La librería CDN expone el objeto global 'supabase'
