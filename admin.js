@@ -1,10 +1,17 @@
 (function() {
-  // Check if admin is logged in
-  if (localStorage.getItem('admin_logged_in') !== 'true') {
-    return;
-  }
+  // Check if session exists in Supabase Auth asynchronously
+  supabaseClient.auth.getSession().then(({ data }) => {
+    if (data && data.session) {
+      // Initialize editor only if the user is authenticated
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initEditor);
+      } else {
+        initEditor();
+      }
+    }
+  });
 
-  // Inject Editor CSS Styles
+  // Editor CSS Styles
   const css = `
     /* Admin Toolbar */
     .admin-toolbar {
@@ -76,7 +83,7 @@
       border-color: #cccccc;
     }
 
-    /* Shift layout down */
+    /* Shift layout down for editing mode */
     body {
       margin-top: 50px !important;
     }
@@ -119,6 +126,34 @@
     #adminFloatingImageBtn:hover {
       background-color: #93731b;
       color: #ffffff;
+    }
+
+    /* Popover for links */
+    #adminLinkPopover {
+      position: absolute;
+      display: none;
+      z-index: 100015;
+      background-color: #111111;
+      border: 1px solid #93731b;
+      padding: 4px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+    }
+    .admin-popover-btn {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      padding: 4px 8px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    .admin-popover-btn:hover {
+      color: #b69f75;
     }
 
     /* Modal Styling */
@@ -237,55 +272,23 @@
     .admin-toast.error {
       border-left-color: #b83232;
     }
-
-    /* Popover for links */
-    #adminLinkPopover {
-      position: absolute;
-      display: none;
-      z-index: 100015;
-      background-color: #111111;
-      border: 1px solid #93731b;
-      padding: 4px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      border-radius: 4px;
-    }
-    .admin-popover-btn {
-      background: none;
-      border: none;
-      color: #ffffff;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      padding: 4px 8px;
-      font-family: inherit;
-      transition: all 0.2s ease;
-    }
-    .admin-popover-btn:hover {
-      color: #b69f75;
-    }
   `;
 
-  // Inject Styles
-  const styleEl = document.createElement('style');
-  styleEl.id = 'adminInjectedStyles';
-  styleEl.innerHTML = css;
-  document.head.appendChild(styleEl);
-
-  // Initialize Admin Editor once DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEditor);
-  } else {
-    initEditor();
-  }
-
+  // Initialize Admin Editor
   function initEditor() {
+    injectEditorStyles();
     createToolbar();
     setupEditableTexts();
     setupEditableImages();
     createLinkPopover();
     setupUnloadWarning();
+  }
+
+  function injectEditorStyles() {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'adminInjectedStyles';
+    styleEl.innerHTML = css;
+    document.head.appendChild(styleEl);
   }
 
   // Create Header Toolbar
@@ -438,144 +441,130 @@
       const url = urlInput.value.trim();
 
       if (file) {
-        // Read file as Base64 and upload to server
+        // Upload to Supabase Storage Bucket 'site-images'
         applyBtn.textContent = 'Subiendo...';
         applyBtn.disabled = true;
 
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          // Generate a clean filename: timestamp + original name
-          const cleanName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-          
-          fetch('/admin/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              filename: cleanName,
-              base64Data: evt.target.result
-            })
+        // Clean name by stripping non-alphanumeric chars
+        const cleanName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+        supabaseClient.storage
+          .from('site-images')
+          .upload(cleanName, file, {
+            cacheControl: '3600',
+            upsert: false
           })
-          .then(res => res.json())
-          .then(data => {
-            if (data.status === 'success') {
-              img.src = data.url;
-              overlay.remove();
-              showToast('Imagen actualizada exitosamente.');
-            } else {
-              throw new Error(data.message || 'Error desconocido');
-            }
+          .then(({ data, error }) => {
+            if (error) throw error;
+
+            // Get Public URL
+            const { data: publicUrlData } = supabaseClient.storage
+              .from('site-images')
+              .getPublicUrl(cleanName);
+
+            img.src = publicUrlData.publicUrl;
+            overlay.remove();
+            showToast('Imagen subida y actualizada con éxito.');
           })
           .catch(err => {
-            alert('Error al subir la imagen: ' + err.message);
+            alert('Error al subir la imagen a Supabase Storage: ' + err.message);
             applyBtn.textContent = 'Aplicar';
             applyBtn.disabled = false;
           });
-        };
-        reader.readAsDataURL(file);
       } else if (url) {
         img.src = url;
         overlay.remove();
-        showToast('Imagen actualizada con URL.');
+        showToast('Imagen actualizada por URL.');
       } else {
         overlay.remove();
       }
     });
   }
 
-  // Save changes to Server
-  function saveChanges() {
+  // Generate a unique CSS selector for any element to identify it in the database
+  function getUniqueSelector(el) {
+    if (el.id) return `#${el.id}`;
+    
+    let path = [];
+    while (el && el.nodeType === Node.ELEMENT_NODE) {
+      let selector = el.nodeName.toLowerCase();
+      if (el.className) {
+        // Exclude temporary editor classes
+        const classes = Array.from(el.classList)
+          .filter(c => c !== 'admin-editable' && c !== 'admin-active-editing')
+          .join('.');
+        if (classes) selector += `.${classes}`;
+      }
+      
+      let sibling = el.previousElementSibling;
+      let index = 1;
+      while (sibling) {
+        if (sibling.nodeName === el.nodeName) index++;
+        sibling = sibling.previousElementSibling;
+      }
+      selector += `:nth-of-type(${index})`;
+      
+      path.unshift(selector);
+      el = el.parentNode;
+    }
+    return path.join(' > ');
+  }
+
+  // Save changes to Supabase Database
+  async function saveChanges() {
     const saveBtn = document.getElementById('adminSaveBtn');
     saveBtn.textContent = 'Guardando...';
     saveBtn.disabled = true;
 
-    // Clone DOM to clean it up before sending
-    const clone = document.documentElement.cloneNode(true);
+    const content = {};
+    const textSelectors = 'h1, h2, h3, h4, p, .btn-gold, .drawer-link, .lawyer-name, .lawyer-title, .lawyer-bio, .footer-info p, .close-text';
 
-    // Remove Admin Toolbar
-    const toolbar = clone.querySelector('.admin-toolbar');
-    if (toolbar) toolbar.remove();
-
-    // Remove Floating image edit button
-    const flBtn = clone.querySelector('#adminFloatingImageBtn');
-    if (flBtn) flBtn.remove();
-
-    // Remove any modal overlay if open
-    const modal = clone.querySelector('.admin-modal-overlay');
-    if (modal) modal.remove();
-
-    // Remove Link Popover if present
-    const linkPopover = clone.querySelector('#adminLinkPopover');
-    if (linkPopover) linkPopover.remove();
-
-    // Remove injected Stylesheet
-    const injectedStyles = clone.querySelector('#adminInjectedStyles');
-    if (injectedStyles) injectedStyles.remove();
-
-    // Strip contenteditable attributes & classes
-    clone.querySelectorAll('[contenteditable]').forEach(el => {
-      el.removeAttribute('contenteditable');
-    });
-    clone.querySelectorAll('.admin-editable').forEach(el => {
-      el.classList.remove('admin-editable');
+    // Collect all edited texts
+    document.querySelectorAll(textSelectors).forEach(el => {
+      if (el.closest('.admin-toolbar') || el.closest('.admin-modal') || el.closest('#adminLinkPopover')) return;
+      const selector = getUniqueSelector(el);
+      content[selector] = el.innerHTML;
     });
 
-    // Remove temporary active states added by Javascript runtime
-    const body = clone.querySelector('body');
-    if (body) {
-      body.classList.remove('menu-open');
-      body.style.removeProperty('margin-top');
-    }
-    
-    const header = clone.querySelector('#siteHeader');
-    if (header) {
-      header.classList.remove('scrolled');
-      header.style.removeProperty('top');
-    }
+    // Collect all edited image sources
+    document.querySelectorAll('img').forEach(img => {
+      if (img.closest('.admin-toolbar') || img.closest('.admin-modal') || img.closest('#adminFloatingImageBtn')) return;
+      const selector = getUniqueSelector(img);
+      content[selector] = img.src;
+    });
 
-    clone.querySelectorAll('.menu-drawer.active').forEach(el => el.classList.remove('active'));
-    clone.querySelectorAll('.menu-drawer-overlay.active').forEach(el => el.classList.remove('active'));
-    clone.querySelectorAll('.reveal.active').forEach(el => el.classList.remove('active'));
-
-    // Construct final clean HTML
-    const cleanHtml = '<!DOCTYPE html>\n' + clone.outerHTML;
-
-    // Extract current filename
+    // Get current page name
     let filename = window.location.pathname.split('/').pop();
     if (!filename || filename === 'admin' || filename === 'admin/') {
       filename = 'index.html';
     }
 
-    // Send save POST request
-    fetch('/admin/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        filename: filename,
-        html: cleanHtml
-      })
-    })
-    .then(res => res.json())
-    .then(data => {
+    try {
+      // Upsert data to 'site_pages' table
+      const { error } = await supabaseClient
+        .from('site_pages')
+        .upsert({
+          filename: filename,
+          content: content,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'filename' });
+
       saveBtn.textContent = 'Guardar Cambios';
       saveBtn.disabled = false;
-      if (data.status === 'success') {
-        showToast('¡Todos los cambios se han guardado permanentemente!');
-        // Reset unload flag
-        window.onbeforeunload = null;
-      } else {
-        showToast('Error al guardar los cambios: ' + data.message, true);
-      }
-    })
-    .catch(err => {
+
+      if (error) throw error;
+
+      showToast('¡Todos los cambios se han guardado exitosamente en Supabase!');
+      window.onbeforeunload = null;
+    } catch (err) {
       saveBtn.textContent = 'Guardar Cambios';
       saveBtn.disabled = false;
-      showToast('Error de red al guardar: ' + err.message, true);
-    });
+      showToast('Error al guardar en Supabase: ' + err.message, true);
+    }
   }
 
   // Toast message helper
   function showToast(message, isError = false) {
-    // Remove existing toast if any
     const oldToast = document.querySelector('.admin-toast');
     if (oldToast) oldToast.remove();
 
@@ -584,10 +573,8 @@
     toast.innerText = message;
     document.body.appendChild(toast);
 
-    // Trigger animate-in
     setTimeout(() => toast.classList.add('active'), 50);
 
-    // Animate-out and remove
     setTimeout(() => {
       toast.classList.remove('active');
       setTimeout(() => toast.remove(), 400);
@@ -604,8 +591,8 @@
   }
 
   // Logout Admin
-  function logout() {
-    localStorage.removeItem('admin_logged_in');
+  async function logout() {
+    await supabaseClient.auth.signOut();
     window.location.reload();
   }
 })();

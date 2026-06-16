@@ -9,6 +9,9 @@
   <link rel="shortcut icon" href="https://www.wix.com/favicon.ico" type="image/x-icon">
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css">
+  <!-- Supabase CDN and Config -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <style>
     body.admin-login-body {
       background-color: var(--secondary-dark, #121212);
@@ -146,33 +149,55 @@
       const loginForm = document.getElementById('loginForm');
       const loginError = document.getElementById('loginError');
       
-      // If already logged in, redirect to home
-      if (localStorage.getItem('admin_logged_in') === 'true') {
-        window.location.href = 'index.html';
-      }
+      // Check if session already exists
+      supabaseClient.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          window.location.href = 'index.html';
+        }
+      });
       
-      loginForm.addEventListener('submit', (e) => {
+      loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const usernameInput = document.getElementById('username').value.trim();
         const passwordInput = document.getElementById('password').value;
+        const btn = loginForm.querySelector('.login-btn');
         
-        // Credentials validation
-        if (usernameInput === 'juridic45' && passwordInput === 'JUD3445.-..-') {
-          localStorage.setItem('admin_logged_in', 'true');
-          loginError.style.display = 'none';
+        // Map username 'juridic45' to 'juridic45@noweb.cl' for Supabase Auth
+        let email = usernameInput;
+        if (usernameInput === 'juridic45') {
+          email = 'juridic45@noweb.cl';
+        }
+        
+        btn.textContent = 'Verificando...';
+        btn.disabled = true;
+        
+        try {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: passwordInput
+          });
           
-          // Show quick success state
-          const btn = loginForm.querySelector('.login-btn');
-          btn.textContent = 'Accediendo...';
-          btn.style.backgroundColor = '#2b7040';
-          
-          setTimeout(() => {
-            window.location.href = 'index.html';
-          }, 600);
-        } else {
+          if (error) {
+            loginError.textContent = 'Error al iniciar sesión: ' + error.message;
+            loginError.style.display = 'block';
+            btn.textContent = 'Ingresar';
+            btn.disabled = false;
+            document.getElementById('password').value = '';
+          } else {
+            loginError.style.display = 'none';
+            btn.textContent = 'Accediendo...';
+            btn.style.backgroundColor = '#2b7040';
+            
+            setTimeout(() => {
+              window.location.href = 'index.html';
+            }, 600);
+          }
+        } catch (err) {
+          loginError.textContent = 'Error de conexión: ' + err.message;
           loginError.style.display = 'block';
-          document.getElementById('password').value = '';
+          btn.textContent = 'Ingresar';
+          btn.disabled = false;
         }
       });
     });
